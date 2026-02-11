@@ -37,5 +37,13 @@ if __name__ == "__main__":
     predictions = make_predictions(
         users_id, "models/model.pkl", "data/processed/user_matrix.csv"
     )
-
     print(predictions)
+    movie_matrix = pd.read_csv("data/processed/movie_matrix.csv")
+    movies_raw = pd.read_csv("data/raw/movies.csv")[["movieId", "title"]]
+
+    for user_i, recs in enumerate(predictions, start=1):
+        movie_ids = movie_matrix.iloc[recs]["movieId"].tolist()
+        titles = movies_raw[movies_raw["movieId"].isin(movie_ids)][["movieId", "title"]]
+        print(f"\nUser {user_i} recommendations:")
+        print(titles.to_string(index=False))
+

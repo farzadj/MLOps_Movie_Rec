@@ -1,0 +1,116 @@
+schema: '2.0'
+stages:
+  make_dataset:
+    cmd: python src/data/make_dataset.py data/raw data/processed
+    deps:
+    - path: data/raw/movies.csv
+      hash: md5
+      md5: 773f10915722cf8256480f2e91711a5f
+      size: 1401634
+    - path: data/raw/ratings.csv
+      hash: md5
+      md5: b5295ddb3165cd002297e9ce18adea47
+      size: 533444411
+    - path: src/data/make_dataset.py
+      hash: md5
+      md5: 0ce02375a769352d71472b801d66bddc
+      size: 2439
+    outs:
+    - path: data/processed/movies.csv
+      hash: md5
+      md5: 773f10915722cf8256480f2e91711a5f
+      size: 1401634
+    - path: data/processed/ratings.csv
+      hash: md5
+      md5: b5295ddb3165cd002297e9ce18adea47
+      size: 533444411
+  build_features:
+    cmd: python src/features/build_features.py
+    deps:
+    - path: data/processed/movies.csv
+      hash: md5
+      md5: 773f10915722cf8256480f2e91711a5f
+      size: 1401634
+    - path: data/processed/ratings.csv
+      hash: md5
+      md5: b5295ddb3165cd002297e9ce18adea47
+      size: 533444411
+    - path: src/features/build_features.py
+      hash: md5
+      md5: 682a15881952f5c9869648097bd60e0a
+      size: 2328
+    outs:
+    - path: data/processed/movie_matrix.csv
+      hash: md5
+      md5: 1554692a2965d448a2f3ae4e523abd12
+      size: 1279736
+    - path: data/processed/user_matrix.csv
+      hash: md5
+      md5: a1d37f8fef93fac9072477a80e6c6b4b
+      size: 44141974
+  train_model:
+    cmd: python src/models/train_model.py --n-neighbors 15 --algorithm auto 
+      --metric cosine --p 2 --leaf-size 30 --n-jobs -1 --movie-matrix-path 
+      data/processed/movie_matrix.csv --output-model-path models/model.pkl
+    deps:
+    - path: data/processed/movie_matrix.csv
+      hash: md5
+      md5: 1554692a2965d448a2f3ae4e523abd12
+      size: 1279736
+    - path: src/models/train_model.py
+      hash: md5
+      md5: 3cb40e170aa027ebdf543b89dd22df85
+      size: 2456
+    params:
+      params.yaml:
+        train.algorithm: auto
+        train.leaf_size: 30
+        train.metric: cosine
+        train.n_jobs: -1
+        train.n_neighbors: 15
+        train.p: 2
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: dc289e82cf099ef4d99627fe52fab2a1
+      size: 4365280
+  evaluate_model:
+    cmd: python src/models/evaluate_model.py --ratings-path data/raw/ratings.csv
+      --user-matrix-path data/processed/user_matrix.csv --movie-matrix-path 
+      data/processed/movie_matrix.csv --model-path models/model.pkl 
+      --base-model-path models/base_model.pkl --top-k 10 --test-size 0.2 
+      --min-interactions 20 --relevance-threshold 4.0 --max-users 200 
+      --random-seed 42
+    deps:
+    - path: data/processed/movie_matrix.csv
+      hash: md5
+      md5: 1554692a2965d448a2f3ae4e523abd12
+      size: 1279736
+    - path: data/processed/user_matrix.csv
+      hash: md5
+      md5: a1d37f8fef93fac9072477a80e6c6b4b
+      size: 44141974
+    - path: data/raw/ratings.csv
+      hash: md5
+      md5: b5295ddb3165cd002297e9ce18adea47
+      size: 533444411
+    - path: models/base_model.pkl
+      hash: md5
+      md5: 39f97525cc0378a8ede8fa99848af754
+      size: 9144956
+    - path: models/model.pkl
+      hash: md5
+      md5: dc289e82cf099ef4d99627fe52fab2a1
+      size: 4365280
+    - path: src/models/evaluate_model.py
+      hash: md5
+      md5: 38cc26719c56da8528ebc574b38a358e
+      size: 7585
+    params:
+      params.yaml:
+        eval.max_users: 200
+        eval.min_interactions: 20
+        eval.random_seed: 42
+        eval.relevance_threshold: 4.0
+        eval.test_size: 0.2
+        eval.top_k: 10

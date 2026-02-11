@@ -1,0 +1,15 @@
+artifact_path: file:///C:/Users/fjgup/Desktop/MLOps_Movie_Rec/Template_MLOps_movie_recommandation/mlartifacts/1/models/m-ed72129cfe50497bac4d60a42c89dfd4/artifacts
+flavors:
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.4.2
+    skops_trusted_types: null
+mlflow_version: 3.9.0
+model_id: m-ed72129cfe50497bac4d60a42c89dfd4
+model_size_bytes: 4365280
+model_uuid: m-ed72129cfe50497bac4d60a42c89dfd4
+prompts: null
+run_id: 499444ceefae424b8de3e0d5fbe190be
+utc_time_created: '2026-02-10 15:09:16.153265'

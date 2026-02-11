@@ -1,11 +1,12 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+#from sklearn.preprocessing import LabelEncoder
 import os
 
 
-def read_ratings(ratings_csv, data_dir="data/raw") -> pd.DataFrame:
+
+def read_ratings(ratings_csv, data_dir="data/processed") -> pd.DataFrame:
     """
-    Reads a ratings.csv from the data/raw folder.
+    Reads a ratings.csv from the data/processed folder.
 
     Parameters
     -------
@@ -20,14 +21,14 @@ def read_ratings(ratings_csv, data_dir="data/raw") -> pd.DataFrame:
     """
     data = pd.read_csv(os.path.join(data_dir, ratings_csv))
 
-    temp = pd.DataFrame(LabelEncoder().fit_transform(data["movieId"]))
-    data["movieId"] = temp
+    #temp = pd.DataFrame(LabelEncoder().fit_transform(data["movieId"]))
+    #data["movieId"] = temp
     return data
 
 
-def read_movies(movies_csv, data_dir="data/raw") -> pd.DataFrame:
+def read_movies(movies_csv, data_dir="data/processed") -> pd.DataFrame:
     """
-    Reads a movies.csv from the data/raw folder.
+    Reads a movies.csv from the data/processed folder.
 
     Parameters
     -------
