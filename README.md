@@ -43,16 +43,24 @@ python .\src\models\train_model.py --output-model-path .\models\model.pkl
 python .\src\models\evaluate_model.py --model-path .\models\model.pkl --base-model-path .\models\base_model.pkl
 ```
 
-## Run Full Stack with Docker Compose
+## Run with Docker Compose
+
+Start MLflow first (pipeline logs to MLflow):
 
 ```powershell
-docker compose up -d mlflow airflow inference-api streamlit prometheus grafana
+docker compose up -d mlflow
 ```
 
 Run the pipeline once to generate/update processed features and model files:
 
 ```powershell
 docker compose --profile pipeline up pipeline
+```
+
+Then start the rest of the services:
+
+```powershell
+docker compose up -d airflow inference-api streamlit prometheus grafana
 ```
 
 Services:
