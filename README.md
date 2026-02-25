@@ -10,6 +10,10 @@ End-to-end movie recommendation workflow with:
 - Prometheus + Grafana monitoring
 - Docker Compose orchestration
 
+## Workflow Diagram
+
+![MLOps Movie Recommendation Workflow](assets/workflow.png)
+
 ## Project Structure
 
 - `src/data/`: dataset preparation scripts
@@ -43,6 +47,12 @@ python .\src\models\evaluate_model.py --model-path .\models\model.pkl --base-mod
 
 ```powershell
 docker compose up -d mlflow airflow inference-api streamlit prometheus grafana
+```
+
+Run the pipeline once to generate/update processed features and model files:
+
+```powershell
+docker compose --profile pipeline up pipeline
 ```
 
 Services:
@@ -84,4 +94,3 @@ For testing, schedule can run every 2 minutes; for production, switch to daily.
 ```powershell
 pytest -q
 ```
-
