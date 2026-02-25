@@ -36,8 +36,8 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    mlflow.set_tracking_uri("http://127.0.0.1:5000")
-    mlflow.set_experiment("movie_reco_knn")
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+    mlflow.set_experiment(os.getenv("MLFLOW_EXPERIMENT_NAME", "movie_reco_knn"))
 
     movie_matrix = pd.read_csv(args.movie_matrix_path)
     with mlflow.start_run(run_name="train_knn_genre"):

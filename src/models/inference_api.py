@@ -1,9 +1,13 @@
 import os
 import pickle
+import time
 from pathlib import Path
 import uvicorn
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi import Request
+from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 
 
@@ -28,15 +32,43 @@ FEATURE_COLUMNS = [c for c in USER_MATRIX.columns if c != "userId"]
 
 app = FastAPI(title="Movie Recommendation Inference API", version="0.1.0")
 
+REQUEST_COUNT = Counter(
+    "movie_api_requests_total",
+    "Total number of HTTP requests",
+    ["method", "path", "status_code"],
+)
+REQUEST_LATENCY = Histogram(
+    "movie_api_request_latency_seconds",
+    "HTTP request latency in seconds",
+    ["method", "path"],
+)
+
 
 class RecommendRequest(BaseModel):
     user_ids: list[int] = Field(..., min_length=1)
     top_k: int = Field(default=10, ge=1)
 
 
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    path = request.url.path
+    method = request.method
+    start = time.perf_counter()
+    response = await call_next(request)
+    latency = time.perf_counter() - start
+    REQUEST_LATENCY.labels(method=method, path=path).observe(latency)
+    REQUEST_COUNT.labels(method=method, path=path, status_code=str(response.status_code)).inc()
+    return response
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.post("/recommend")
@@ -79,4 +111,4 @@ def recommend(request: RecommendRequest) -> dict:
 
 
 if __name__ == "__main__":
-    uvicorn.run("src.models.inference_api:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

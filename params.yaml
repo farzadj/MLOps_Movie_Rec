@@ -1,9 +1,9 @@
 train:
-  n_neighbors: 15
+  n_neighbors: 30
   algorithm: auto
   metric: cosine
   p: 2
-  leaf_size: 30
+  leaf_size: 50
   n_jobs: -1
 
 eval:

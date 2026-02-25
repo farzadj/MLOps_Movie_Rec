@@ -150,8 +150,8 @@ if __name__ == "__main__":
     args = parse_args()
     output = evaluate(args)
 
-    mlflow.set_tracking_uri("http://127.0.0.1:5000")
-    mlflow.set_experiment("movie_reco_knn_compare")
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+    mlflow.set_experiment(os.getenv("MLFLOW_EXPERIMENT_NAME", "movie_reco_knn_compare"))
     with mlflow.start_run(run_name="eval_model_vs_base_model"):
         mlflow.log_param("ratings_path", args.ratings_path)
         mlflow.log_param("user_matrix_path", args.user_matrix_path)
