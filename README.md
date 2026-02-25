@@ -1,93 +1,87 @@
-Project Name
-==============================
+# MLOps Movie Recommendation
 
-This project is a starting Pack for MLOps projects based on the subject "movie_recommandation". It's not perfect so feel free to make some modifications on it.
+End-to-end movie recommendation workflow with:
 
-Project Organization
-------------
+- Feature engineering from MovieLens data
+- KNN training and evaluation with MLflow tracking
+- FastAPI inference service
+- Streamlit UI (poster-based movie selection)
+- Airflow incremental retraining DAG
+- Prometheus + Grafana monitoring
+- Docker Compose orchestration
 
-    ├── LICENSE
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── logs               <- Logs from training and predicting
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   ├── check_structure.py    
-    │   │   ├── import_raw_data.py 
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   ├── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │   │   └── visualize.py
-    │   └── config         <- Describe the parameters used in train_model.py and predict_model.py
+## Project Structure
 
---------
+- `src/data/`: dataset preparation scripts
+- `src/features/`: feature generation (`movie_matrix.csv`, `user_matrix.csv`)
+- `src/models/`: training, evaluation, prediction, inference API
+- `src/visualization/`: Streamlit app
+- `dags/`: Airflow DAG for incremental retraining
+- `monitoring/`: Prometheus and Grafana provisioning
+- `models/`: saved models (`model.pkl`, `base_model.pkl`)
+- `data/`: raw and processed datasets
+- `tests/`: pytest unit tests
 
-## Steps to follow 
+## Local Python Setup
 
-Convention : All python scripts must be run from the root specifying the relative file path.
+```powershell
+python -m venv .env
+.\.env\Scripts\activate
+pip install -r requirements.txt
+```
 
-### 1- Create a virtual environment using Virtualenv.
+## Run Core Pipeline (without Docker)
 
-    `python -m venv my_env`
+```powershell
+python .\src\data\make_dataset.py .\data\raw .\data\processed
+python .\src\features\build_features.py
+python .\src\models\train_model.py --output-model-path .\models\model.pkl
+python .\src\models\evaluate_model.py --model-path .\models\model.pkl --base-model-path .\models\base_model.pkl
+```
 
-###   Activate it 
+## Run Full Stack with Docker Compose
 
-    `./my_env/Scripts/activate`
+```powershell
+docker compose up -d mlflow airflow inference-api streamlit prometheus grafana
+```
 
-###   Install the packages from requirements.txt  (You can ignore the warning with "setup.py")
+Services:
 
-    `pip install -r .\requirements.txt`
+- MLflow: `http://127.0.0.1:5000`
+- Airflow: `http://127.0.0.1:8080` (default: `admin/admin`)
+- FastAPI: `http://127.0.0.1:8000`
+- Streamlit: `http://127.0.0.1:8501`
+- Prometheus: `http://127.0.0.1:9090`
+- Grafana: `http://127.0.0.1:3000` (default: `admin/admin`)
 
-### 2- Execute import_raw_data.py to import the 4 datasets (say yes when it asks you to create a new folder)
+## API Quick Test
 
-    `python .\src\data\import_raw_data.py` 
+PowerShell:
 
-### 3- Execute make_dataset.py initializing `./data/raw` as input file path and `./data/processed` as output file path.
+```powershell
+$body = @{ user_ids = @(1); top_k = 5 } | ConvertTo-Json -Compress
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/recommend" -Method Post -ContentType "application/json" -Body $body
+```
 
-    `python .\src\data\make_dataset.py`
+## Monitoring
 
-### 4- Execute build_features.py to preprocess the data (this can take a while)
+- FastAPI exposes metrics at `GET /metrics`
+- Prometheus scrape config: `monitoring/prometheus/prometheus.yml`
+- Grafana datasource provisioning: `monitoring/grafana/provisioning/datasources/datasource.yml`
 
-    `python .\src\features\build_features.py`
+## Airflow Incremental Retraining
 
-### 5- Execute train_model.py to train the model
+The DAG in `dags/daily_incremental_training_dag.py` supports incremental updates:
 
-    `python .\src\models\train_model.py`
+- Uses 50% of ratings as initial training data
+- Splits remaining 50% into 5 bulks
+- Appends one bulk per run and retrains/evaluates
 
-### 5- Finally, execute predict_model.py file to make the predictions (by default you will be printed predictions for the first 5 users of the dataset). 
+For testing, schedule can run every 2 minutes; for production, switch to daily.
 
-    `python .\src\models\predict_model.py`
+## Run Tests
 
-### Note that we have 10 recommandations per user
+```powershell
+pytest -q
+```
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
