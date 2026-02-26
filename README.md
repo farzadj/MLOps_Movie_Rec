@@ -129,7 +129,7 @@ Sidebar settings:
 - Inference API URL
 - Model/data paths (`model.pkl`, `movie_matrix.csv`, `movies.csv`, `links.csv`)
 - Search filter and number of posters to display
-- Optional TMDB posters key: $env:STREAMLIT_TMDB_API_KEY = "your_tmdb_api_key_here" before launching Streamlit
+- Optional TMDB posters key: set `STREAMLIT_TMDB_API_KEY` (or `TMDB_API_KEY`) before launching Streamlit
 
 ## Monitoring
 

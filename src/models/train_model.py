@@ -23,7 +23,7 @@ def train_model(movie_matrix, n_neighbors, algorithm, metric, p, leaf_size, n_jo
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train KNN model and log runs to MLflow.")
-    parser.add_argument("--n-neighbors", type=int, default=15)
+    parser.add_argument("--n-neighbors", type=int, default=50)
     parser.add_argument("--algorithm", type=str, default="auto")
     parser.add_argument("--metric", type=str, default="cosine")
     parser.add_argument("--p", type=int, default=2)
