@@ -19,7 +19,7 @@ DEFAULT_MODEL_PATH = os.getenv("STREAMLIT_MODEL_PATH", "models/model.pkl")
 DEFAULT_MOVIE_MATRIX_PATH = os.getenv("STREAMLIT_MOVIE_MATRIX_PATH", "data/processed/movie_matrix.csv")
 DEFAULT_MOVIES_PATH = os.getenv("STREAMLIT_MOVIES_PATH", "data/processed/movies.csv")
 DEFAULT_LINKS_PATH = os.getenv("STREAMLIT_LINKS_PATH", "data/raw/links.csv")
-TMDB_API_KEY = os.getenv("STREAMLIT_TMDB_API_KEY", "")
+TMDB_API_KEY = os.getenv("STREAMLIT_TMDB_API_KEY") or os.getenv("TMDB_API_KEY", "")
 
 
 def parse_user_ids(raw: str) -> list[int]:
@@ -365,7 +365,10 @@ def render_movie_picker_page() -> None:
     max_cards = int(st.session_state.max_cards)
 
     if not TMDB_API_KEY:
-        st.info("TMDB key not set. Using fallback poster lookup. Set STREAMLIT_TMDB_API_KEY for better posters.")
+        st.info(
+            "TMDB key not set. Using fallback poster lookup. "
+            "Set STREAMLIT_TMDB_API_KEY (or TMDB_API_KEY) for better posters."
+        )
 
     try:
         _ = Path(model_path)
