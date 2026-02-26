@@ -1,0 +1,6 @@
+outs:
+- md5: 9282bc6abf20d25d133fcd7b50028a9e.dir
+  size: 855598404
+  nfiles: 7
+  hash: md5
+  path: raw_incremental
