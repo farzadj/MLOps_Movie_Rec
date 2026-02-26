@@ -57,10 +57,13 @@ git add .dvc data\*.dvc models\*.dvc data\.gitignore models\.gitignore
 git commit -m "Update DVC-tracked artifacts"
 ```
 
+Each developer/machine must create a DVC remote before running `dvc pull`/`dvc push`.
+Use `--local` to keep the remote config out of Git (`.dvc/config.local`).
+
 Configure a remote once (example local folder):
 
 ```powershell
-dvc remote add -d localstorage ..\dvc-storage
+dvc remote add --local -d localstorage ..\dvc-storage
 dvc push
 ```
 
