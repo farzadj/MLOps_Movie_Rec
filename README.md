@@ -34,6 +34,36 @@ python -m venv .env
 pip install -r requirements.txt
 ```
 
+## DVC Data/Model Tracking
+
+This repository is initialized with DVC and tracks large artifacts with `.dvc` files:
+
+- `data/raw`
+- `data/processed`
+- `data/raw_incremental`
+- `data/incremental_state`
+- `models/model.pkl`
+- `models/base_model.pkl`
+
+Typical workflow:
+
+```powershell
+# pull tracked data/models from your configured DVC remote
+dvc pull
+
+# after data/model updates
+dvc add data\raw data\processed data\raw_incremental data\incremental_state models\model.pkl models\base_model.pkl
+git add .dvc data\*.dvc models\*.dvc data\.gitignore models\.gitignore
+git commit -m "Update DVC-tracked artifacts"
+```
+
+Configure a remote once (example local folder):
+
+```powershell
+dvc remote add -d localstorage ..\dvc-storage
+dvc push
+```
+
 ## Run Core Pipeline (without Docker)
 
 ```powershell
