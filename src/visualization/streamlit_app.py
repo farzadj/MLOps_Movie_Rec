@@ -349,29 +349,6 @@ def render_userid_page(api_url: str, token: str) -> None:
         except Exception as exc:
             st.error(f"Request failed: {exc}")
 
-    st.divider()
-    st.subheader("Generate Demo Traffic")
-    col1, col2 = st.columns(2)
-    with col1:
-        num_requests = st.number_input("Number of requests", min_value=1, max_value=500, value=50, step=1)
-    with col2:
-        delay_ms = st.number_input("Delay (ms)", min_value=0, max_value=5000, value=50, step=10)
-
-    if st.button("Generate Traffic for Monitoring"):
-        try:
-            user_ids = parse_user_ids(users_raw)
-            generate_demo_traffic(
-                api_url=api_url,
-                token=token,
-                user_ids=user_ids,
-                top_k=int(top_k),
-                num_requests=int(num_requests),
-                delay_ms=int(delay_ms),
-            )
-        except Exception as exc:
-            st.error(f"Traffic generation failed: {exc}")
-
-
 def render_admin_page(api_url: str, token: str, role: str) -> None:
     st.subheader("Admin Controls")
     if role != "admin":
@@ -395,6 +372,29 @@ def render_admin_page(api_url: str, token: str, role: str) -> None:
                     st.success(r.json().get("details", "Retraining completed."))
             except Exception as exc:
                 st.error(f"Retrain failed: {exc}")
+
+    st.divider()
+    st.markdown("### Generate demo traffic")
+    users_raw = st.text_input("User IDs (comma-separated)", value="1", key="admin_users_raw")
+    top_k = st.number_input("Top K", min_value=1, max_value=50, value=5, step=1, key="admin_topk_user")
+    col1, col2 = st.columns(2)
+    with col1:
+        num_requests = st.number_input("Number of requests", min_value=1, max_value=500, value=50, step=1, key="admin_num_requests")
+    with col2:
+        delay_ms = st.number_input("Delay (ms)", min_value=0, max_value=5000, value=50, step=10, key="admin_delay_ms")
+    if st.button("Generate Traffic for Monitoring (admin)"):
+        try:
+            user_ids = parse_user_ids(users_raw)
+            generate_demo_traffic(
+                api_url=api_url,
+                token=token,
+                user_ids=user_ids,
+                top_k=int(top_k),
+                num_requests=int(num_requests),
+                delay_ms=int(delay_ms),
+            )
+        except Exception as exc:
+            st.error(f"Traffic generation failed: {exc}")
 
     st.divider()
     st.markdown("### Append sample ratings")
@@ -431,7 +431,11 @@ def render_admin_page(api_url: str, token: str, role: str) -> None:
             st.error(f"Append failed: {exc}")
 
 
-def render_movie_picker_page() -> None:
+def render_movie_picker_page(token: str) -> None:
+    if not token:
+        st.subheader("Recommend by Selected Movies")
+        st.info("Login first to use movie recommendations.")
+        return
     enable_scroll_restore()
     st.subheader("Recommend by Selected Movies")
     st.caption("Pick movies by poster; selected movies are marked with a check.")
@@ -621,15 +625,6 @@ def main() -> None:
         if st.session_state.api_role:
             st.caption(f"Role: {st.session_state.api_role}")
 
-        check = st.button("Quick health check")
-        if check and st.session_state.api_token:
-            try:
-                r = requests.get(f"{api_url}/health", headers=api_headers(st.session_state.api_token), timeout=10)
-                st.success(f"Health: {r.status_code} {r.text}")
-            except Exception as exc:
-                st.error(f"Health check failed: {exc}")
-        elif check:
-            st.warning("Login first. Health endpoint requires admin role.")
         st.subheader("Movie Picker Settings")
         st.session_state.model_path = st.text_input("Model path", value=st.session_state.model_path)
         st.session_state.movie_matrix_path = st.text_input("Movie matrix path", value=st.session_state.movie_matrix_path)
@@ -648,7 +643,7 @@ def main() -> None:
 
     tab_movie, tab_user, tab_admin = st.tabs(["Recommend by Selected Movies", "Recommend by User IDs", "Admin"])
     with tab_movie:
-        render_movie_picker_page()
+        render_movie_picker_page(st.session_state.api_token)
     with tab_user:
         render_userid_page(api_url, st.session_state.api_token)
     with tab_admin:

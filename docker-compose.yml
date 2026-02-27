@@ -58,6 +58,9 @@ services:
       USER_MATRIX_PATH: /app/data/processed/user_matrix.csv
       MOVIE_MATRIX_PATH: /app/data/processed/movie_matrix.csv
       MOVIES_PATH: /app/data/raw/movies.csv
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_NAME: movie_reco_knn
+      MLFLOW_REGISTERED_MODEL_NAME: movie_reco_knn
     ports:
       - "8000:8000"
     volumes:
