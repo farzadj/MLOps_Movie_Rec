@@ -33,9 +33,26 @@ def parse_user_ids(raw: str) -> list[int]:
     return values
 
 
-def call_recommend(api_url: str, user_ids: list[int], top_k: int) -> dict:
+def api_headers(token: str) -> dict:
+    if not token:
+        return {}
+    return {"Authorization": f"Bearer {token}"}
+
+
+def login_api(api_url: str, username: str, password: str) -> dict:
+    resp = requests.post(
+        f"{api_url}/auth/token",
+        data={"username": username, "password": password},
+        timeout=15,
+    )
+    if resp.status_code >= 400:
+        raise RuntimeError(f"{resp.status_code}: {resp.text}")
+    return resp.json()
+
+
+def call_recommend(api_url: str, token: str, user_ids: list[int], top_k: int) -> dict:
     payload = {"user_ids": user_ids, "top_k": top_k}
-    response = requests.post(f"{api_url}/recommend", json=payload, timeout=30)
+    response = requests.post(f"{api_url}/recommend", json=payload, headers=api_headers(token), timeout=30)
     if response.status_code >= 400:
         raise RuntimeError(f"{response.status_code}: {response.text}")
     return response.json()
@@ -263,7 +280,7 @@ def show_recommendations(result: dict) -> None:
         st.info(f"Missing user IDs: {missing}")
 
 
-def generate_demo_traffic(api_url: str, user_ids: list[int], top_k: int, num_requests: int, delay_ms: int) -> None:
+def generate_demo_traffic(api_url: str, token: str, user_ids: list[int], top_k: int, num_requests: int, delay_ms: int) -> None:
     payload = {"user_ids": user_ids, "top_k": top_k}
     ok = 0
     failed = 0
@@ -272,7 +289,7 @@ def generate_demo_traffic(api_url: str, user_ids: list[int], top_k: int, num_req
 
     for idx in range(num_requests):
         try:
-            response = requests.post(f"{api_url}/recommend", json=payload, timeout=15)
+            response = requests.post(f"{api_url}/recommend", json=payload, headers=api_headers(token), timeout=15)
             if response.status_code < 400:
                 ok += 1
             else:
@@ -316,15 +333,18 @@ def enable_scroll_restore() -> None:
     )
 
 
-def render_userid_page(api_url: str) -> None:
+def render_userid_page(api_url: str, token: str) -> None:
     st.subheader("Recommend by Existing User IDs")
+    if not token:
+        st.info("Login first to call /recommend.")
+        return
     users_raw = st.text_input("User IDs (comma-separated)", value="1")
     top_k = st.number_input("Top K", min_value=1, max_value=50, value=5, step=1, key="topk_user")
 
     if st.button("Get Recommendations", type="primary"):
         try:
             user_ids = parse_user_ids(users_raw)
-            result = call_recommend(api_url, user_ids, int(top_k))
+            result = call_recommend(api_url, token, user_ids, int(top_k))
             show_recommendations(result)
         except Exception as exc:
             st.error(f"Request failed: {exc}")
@@ -342,6 +362,7 @@ def render_userid_page(api_url: str) -> None:
             user_ids = parse_user_ids(users_raw)
             generate_demo_traffic(
                 api_url=api_url,
+                token=token,
                 user_ids=user_ids,
                 top_k=int(top_k),
                 num_requests=int(num_requests),
@@ -349,6 +370,65 @@ def render_userid_page(api_url: str) -> None:
             )
         except Exception as exc:
             st.error(f"Traffic generation failed: {exc}")
+
+
+def render_admin_page(api_url: str, token: str, role: str) -> None:
+    st.subheader("Admin Controls")
+    if role != "admin":
+        st.info("Login as admin to access health check, retraining, and dataset update.")
+        return
+
+    if st.button("Check API health (admin)"):
+        try:
+            r = requests.get(f"{api_url}/health", headers=api_headers(token), timeout=10)
+            st.success(f"Health: {r.status_code} {r.text}")
+        except Exception as exc:
+            st.error(f"Health check failed: {exc}")
+
+    if st.button("Run retraining (admin)"):
+        with st.spinner("Running build_features + train_model..."):
+            try:
+                r = requests.post(f"{api_url}/admin/retrain", headers=api_headers(token), timeout=600)
+                if r.status_code >= 400:
+                    st.error(f"Retrain failed: {r.status_code} {r.text}")
+                else:
+                    st.success(r.json().get("details", "Retraining completed."))
+            except Exception as exc:
+                st.error(f"Retrain failed: {exc}")
+
+    st.divider()
+    st.markdown("### Append sample ratings")
+    st.caption("Format: one line per rating -> userId,movieId,rating[,timestamp]")
+    sample_rows = st.text_area("Ratings rows", value="999001,1,4.5\n999001,32,4.0")
+    if st.button("Append sample dataset rows (admin)"):
+        try:
+            rows = []
+            for raw in sample_rows.splitlines():
+                line = raw.strip()
+                if not line:
+                    continue
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) < 3:
+                    raise ValueError(f"Invalid row: {line}")
+                item = {"userId": int(parts[0]), "movieId": int(parts[1]), "rating": float(parts[2])}
+                if len(parts) >= 4 and parts[3]:
+                    item["timestamp"] = int(parts[3])
+                rows.append(item)
+            if not rows:
+                raise ValueError("No valid rows provided.")
+            r = requests.post(
+                f"{api_url}/admin/dataset/append-ratings",
+                headers=api_headers(token),
+                json={"rows": rows},
+                timeout=30,
+            )
+            if r.status_code >= 400:
+                st.error(f"Append failed: {r.status_code} {r.text}")
+            else:
+                data = r.json()
+                st.success(f"Appended {data.get('rows_appended')} rows to {data.get('ratings_path')}")
+        except Exception as exc:
+            st.error(f"Append failed: {exc}")
 
 
 def render_movie_picker_page() -> None:
@@ -512,17 +592,44 @@ def main() -> None:
         st.session_state.search_movie = ""
     if "max_cards" not in st.session_state:
         st.session_state.max_cards = 16
+    if "api_token" not in st.session_state:
+        st.session_state.api_token = ""
+    if "api_role" not in st.session_state:
+        st.session_state.api_role = ""
 
     with st.sidebar:
         st.header("Settings")
         api_url = st.text_input("Inference API URL", value=DEFAULT_API_URL)
-        check = st.button("Check API health")
-        if check:
+        st.subheader("API Login")
+        username = st.text_input("Username", value="user")
+        password = st.text_input("Password", value="", type="password")
+        col_login, col_logout = st.columns(2)
+        with col_login:
+            if st.button("Login"):
+                try:
+                    auth = login_api(api_url, username, password)
+                    st.session_state.api_token = auth.get("access_token", "")
+                    st.session_state.api_role = auth.get("role", "")
+                    st.success(f"Logged in as {st.session_state.api_role}")
+                except Exception as exc:
+                    st.error(f"Login failed: {exc}")
+        with col_logout:
+            if st.button("Logout"):
+                st.session_state.api_token = ""
+                st.session_state.api_role = ""
+                st.info("Logged out.")
+        if st.session_state.api_role:
+            st.caption(f"Role: {st.session_state.api_role}")
+
+        check = st.button("Quick health check")
+        if check and st.session_state.api_token:
             try:
-                r = requests.get(f"{api_url}/health", timeout=10)
+                r = requests.get(f"{api_url}/health", headers=api_headers(st.session_state.api_token), timeout=10)
                 st.success(f"Health: {r.status_code} {r.text}")
             except Exception as exc:
                 st.error(f"Health check failed: {exc}")
+        elif check:
+            st.warning("Login first. Health endpoint requires admin role.")
         st.subheader("Movie Picker Settings")
         st.session_state.model_path = st.text_input("Model path", value=st.session_state.model_path)
         st.session_state.movie_matrix_path = st.text_input("Movie matrix path", value=st.session_state.movie_matrix_path)
@@ -536,11 +643,16 @@ def main() -> None:
             "Movies to display", min_value=6, max_value=60, value=int(st.session_state.max_cards), step=6
         )
 
-    tab_movie, tab_user = st.tabs(["Recommend by Selected Movies", "Recommend by User IDs"])
+    if not st.session_state.api_token:
+        st.warning("Login in sidebar to use API-backed recommendation pages.")
+
+    tab_movie, tab_user, tab_admin = st.tabs(["Recommend by Selected Movies", "Recommend by User IDs", "Admin"])
     with tab_movie:
         render_movie_picker_page()
     with tab_user:
-        render_userid_page(api_url)
+        render_userid_page(api_url, st.session_state.api_token)
+    with tab_admin:
+        render_admin_page(api_url, st.session_state.api_token, st.session_state.api_role)
 
 
 if __name__ == "__main__":

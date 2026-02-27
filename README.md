@@ -148,9 +148,17 @@ Services:
 PowerShell:
 
 ```powershell
+$tokenResp = Invoke-RestMethod -Uri "http://127.0.0.1:8000/auth/token" -Method Post -ContentType "application/x-www-form-urlencoded" -Body "username=user&password=user123"
+$token = $tokenResp.access_token
+$headers = @{ Authorization = "Bearer $token" }
 $body = @{ user_ids = @(1); top_k = 5 } | ConvertTo-Json -Compress
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/recommend" -Method Post -ContentType "application/json" -Body $body
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/recommend" -Method Post -Headers $headers -ContentType "application/json" -Body $body
 ```
+
+RBAC defaults:
+
+- `user/user123`: call recommendation endpoints
+- `admin/admin123`: call admin endpoints (`/health`, `/metrics`, `/admin/retrain`, `/admin/dataset/append-ratings`)
 
 ## Streamlit App Usage
 
@@ -167,6 +175,10 @@ Main features:
 - **Recommend by User IDs** tab:
   - Enter existing dataset user IDs and request API recommendations
   - Generate demo traffic for monitoring dashboards
+- **Admin** tab:
+  - Admin health check
+  - Trigger retraining
+  - Append sample ratings rows into `data/raw/ratings.csv`
 
 Sidebar settings:
 
