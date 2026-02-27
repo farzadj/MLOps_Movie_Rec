@@ -134,6 +134,19 @@ Then start the rest of the services:
 docker compose up -d airflow inference-api streamlit prometheus grafana
 ```
 
+If API/auth code changed, rebuild and restart app services:
+
+```powershell
+docker compose up -d --build inference-api streamlit
+```
+
+If `inference-api` is not running, inspect:
+
+```powershell
+docker compose ps -a inference-api
+docker compose logs --tail=200 inference-api
+```
+
 Services:
 
 - MLflow: `http://127.0.0.1:5000`
@@ -174,10 +187,10 @@ Main features:
   - Use **Show more posters** to load more candidates
 - **Recommend by User IDs** tab:
   - Enter existing dataset user IDs and request API recommendations
-  - Generate demo traffic for monitoring dashboards
 - **Admin** tab:
   - Admin health check
   - Trigger retraining
+  - Generate demo traffic for monitoring dashboards
   - Append sample ratings rows into `data/raw/ratings.csv`
 
 Sidebar settings:
@@ -186,6 +199,11 @@ Sidebar settings:
 - Model/data paths (`model.pkl`, `movie_matrix.csv`, `movies.csv`, `links.csv`)
 - Search filter and number of posters to display
 - Optional TMDB posters key: set `STREAMLIT_TMDB_API_KEY` (or `TMDB_API_KEY`) before launching Streamlit
+
+API URL tip:
+
+- If Streamlit runs in Docker, use `http://inference-api:8000`
+- If Streamlit runs locally, use `http://127.0.0.1:8000`
 
 ## Monitoring
 
