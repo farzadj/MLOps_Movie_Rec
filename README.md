@@ -98,6 +98,9 @@ python .\src\models\train_model.py --n-neighbors 15 --algorithm auto --metric co
 python .\src\models\evaluate_model.py --model-path .\models\model.pkl --base-model-path .\models\base_model.pkl --top-k 10
 ```
 
+Training runs also auto-tag Git commit and DVC lineage (`dvc_data_rev`, `dvc_remote`) in MLflow.
+Simple rule: DVC versions training data, MLflow Model Registry versions/promotes trained models, and MLflow tags link each model version back to the exact data/code used.
+
 Open MLflow UI:
 
 - `http://127.0.0.1:5000`
@@ -105,17 +108,25 @@ Open MLflow UI:
 
 ## Run with Docker Compose
 
+Configure your local DVC remote once before running Docker pipeline:
+
+```powershell
+dvc remote add --local -d localstorage ..\dvc-storage
+```
+
 Start MLflow first (pipeline logs to MLflow):
 
 ```powershell
 docker compose up -d mlflow
 ```
 
-Run the pipeline once to generate/update processed features and model files:
+Run the pipeline once (it runs `dvc pull`, builds features, trains, evaluates, and registers model `movie_reco_knn` in MLflow Registry):
 
 ```powershell
 docker compose --profile pipeline up pipeline
 ```
+
+Note: `dvc pull` is non-blocking in Docker pipeline; on first run without a configured/seeded DVC remote, it skips pull and continues by rebuilding data/features locally.
 
 Then start the rest of the services:
 

@@ -116,9 +116,10 @@ services:
     profiles:
       - pipeline
     command: >
-      sh -c "python src/data/make_dataset.py data/raw data/processed &&
+      sh -c "dvc pull || echo 'DVC pull skipped (no remote configured or no data pushed yet).' &&
+      python src/data/make_dataset.py data/raw data/processed &&
       python src/features/build_features.py &&
-      python src/models/train_model.py --output-model-path models/model.pkl &&
+      python src/models/train_model.py --output-model-path models/model.pkl --registered-model-name ${MLFLOW_REGISTERED_MODEL_NAME:-movie_reco_knn} &&
       (test -f models/base_model.pkl || cp models/model.pkl models/base_model.pkl) &&
       python src/models/evaluate_model.py
       --model-path models/model.pkl
@@ -126,6 +127,7 @@ services:
     environment:
       MLFLOW_TRACKING_URI: http://host.docker.internal:5000
       MLFLOW_EXPERIMENT_NAME: movie_reco_knn
+      MLFLOW_REGISTERED_MODEL_NAME: movie_reco_knn
     volumes:
       - ./:/app
     depends_on:
