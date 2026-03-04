@@ -161,7 +161,7 @@ def health(_: dict = Depends(require_admin)) -> dict:
 
 
 @app.get("/metrics")
-def metrics(_: dict = Depends(require_admin)):
+def metrics():
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
