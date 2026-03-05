@@ -24,7 +24,6 @@ End-to-end movie recommendation workflow with:
 - `monitoring/`: Prometheus and Grafana provisioning
 - `models/`: saved models (`model.pkl`, `base_model.pkl`)
 - `data/`: raw and processed datasets
-- `tests/`: pytest unit tests
 
 ## Local Python Setup
 
@@ -249,8 +248,3 @@ The DAG in `dags/daily_incremental_training_dag.py` supports incremental updates
 
 For testing, schedule can run every 2 minutes; for production, switch to daily.
 
-## Run Tests
-
-```powershell
-pytest -q
-```
